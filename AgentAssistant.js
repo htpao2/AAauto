@@ -31,74 +31,79 @@ let KNOWLEDGE_ENHANCEMENT_PROMPT;
  * @param {object} config - The configuration object passed from PluginManager.
  * @param {object} dependencies - An object containing dependencies, like vcpLogFunctions.
  */
-function initialize(config, dependencies) {
-    VCP_SERVER_PORT = config.PORT;
-    VCP_SERVER_ACCESS_KEY = config.Key;
-    MAX_HISTORY_ROUNDS = parseInt(config.AGENT_ASSISTANT_MAX_HISTORY_ROUNDS || '7', 10);
-    CONTEXT_TTL_HOURS = parseInt(config.AGENT_ASSISTANT_CONTEXT_TTL_HOURS || '24', 10);
-    DEBUG_MODE = (config.DebugMode || "False").toLowerCase() === "true";
-    VCP_API_TARGET_URL = `http://localhost:${VCP_SERVER_PORT}/v1`;
-
-    // 知识完善定时任务配置
-    KNOWLEDGE_ENHANCEMENT_ENABLED = (config.KNOWLEDGE_ENHANCEMENT_ENABLED || "false").toLowerCase() === "true";
-    KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES = parseInt(config.KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES || '60', 10);
-    KNOWLEDGE_ENHANCEMENT_TARGET_AGENT = config.KNOWLEDGE_ENHANCEMENT_TARGET_AGENT || 'Nova';
-    KNOWLEDGE_ENHANCEMENT_PROMPT = config.KNOWLEDGE_ENHANCEMENT_PROMPT || '请检查并完善你的日记本,整理近期的学习内容。';
-
-    if (DEBUG_MODE) {
-        console.error(`[AgentAssistant Service] Initializing...`);
-        console.error(`[AgentAssistant Service] VCP PORT: ${VCP_SERVER_PORT}, VCP Key: ${VCP_SERVER_ACCESS_KEY ? 'FOUND' : 'NOT FOUND'}`);
-        console.error(`[AgentAssistant Service] History rounds: ${MAX_HISTORY_ROUNDS}, Context TTL: ${CONTEXT_TTL_HOURS}h.`);
-        console.error(`[AgentAssistant Service] Knowledge Enhancement: ${KNOWLEDGE_ENHANCEMENT_ENABLED ? 'ENABLED' : 'DISABLED'}`);
-        if (KNOWLEDGE_ENHANCEMENT_ENABLED) {
-            console.error(`[AgentAssistant Service] Target Agent: ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}, Interval: ${KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES} minutes`);
-        }
-    }
-
-    loadAgentsFromLocalConfig();
-
-    if (dependencies && dependencies.vcpLogFunctions && typeof dependencies.vcpLogFunctions.pushVcpInfo === 'function') {
-        pushVcpInfo = dependencies.vcpLogFunctions.pushVcpInfo;
-        if (DEBUG_MODE) console.error('[AgentAssistant Service] pushVcpInfo dependency injected successfully.');
-    } else {
-        console.error('[AgentAssistant Service] Warning: pushVcpInfo dependency injection failed. Broadcasts will be ignored.');
-    }
-
-    if (cleanupInterval) clearInterval(cleanupInterval);
-    cleanupInterval = setInterval(periodicCleanup, 60 * 60 * 1000);
-
-    // 启动知识完善定时任务
-    if (KNOWLEDGE_ENHANCEMENT_ENABLED) {
-        if (knowledgeEnhancementInterval) clearInterval(knowledgeEnhancementInterval);
-        
-        const intervalMs = KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES * 60 * 1000;
-        
-        knowledgeEnhancementInterval = setInterval(async () => {
-            if (DEBUG_MODE) console.error('[AgentAssistant Service] Triggering scheduled knowledge enhancement...');
-            
-            try {
-                const result = await processToolCall({
-                    agent_name: KNOWLEDGE_ENHANCEMENT_TARGET_AGENT,
-                    prompt: KNOWLEDGE_ENHANCEMENT_PROMPT
-                });
-                
-                if (DEBUG_MODE) {
-                    if (result.status === 'success') {
-                        console.error(`[AgentAssistant Service] Knowledge enhancement completed successfully for ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}`);
-                    } else {
-                        console.error(`[AgentAssistant Service] Knowledge enhancement failed: ${result.error}`);
-                    }
-                }
-            } catch (error) {
-                console.error(`[AgentAssistant Service] Error during scheduled knowledge enhancement: ${error.message}`);
-            }
-        }, intervalMs);
-        
-        console.log(`[AgentAssistant Service] Knowledge enhancement task scheduled every ${KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES} minutes for agent: ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}`);
-    }
-    
-    console.log('[AgentAssistant Service] Initialized successfully.');
-}
+function initialize(config, dependencies) {  
+    VCP_SERVER_PORT = config.PORT;  
+    VCP_SERVER_ACCESS_KEY = config.Key;  
+    MAX_HISTORY_ROUNDS = parseInt(config.AGENT_ASSISTANT_MAX_HISTORY_ROUNDS || '7', 10);  
+    CONTEXT_TTL_HOURS = parseInt(config.AGENT_ASSISTANT_CONTEXT_TTL_HOURS || '24', 10);  
+    DEBUG_MODE = (config.DebugMode || "False").toLowerCase() === "true";  
+    VCP_API_TARGET_URL = `http://localhost:${VCP_SERVER_PORT}/v1`;  
+  
+    // 知识完善定时任务配置  
+    KNOWLEDGE_ENHANCEMENT_ENABLED = (config.KNOWLEDGE_ENHANCEMENT_ENABLED || "false").toLowerCase() === "true";  
+    KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES = parseInt(config.KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES || '60', 10);  
+    KNOWLEDGE_ENHANCEMENT_TARGET_AGENT = config.KNOWLEDGE_ENHANCEMENT_TARGET_AGENT || 'Nova';  
+    KNOWLEDGE_ENHANCEMENT_PROMPT = config.KNOWLEDGE_ENHANCEMENT_PROMPT || '请检查并完善你的日记本,整理近期的学习内容。';  
+  
+    if (DEBUG_MODE) {  
+        console.error(`[AgentAssistant Service] Initializing...`);  
+        console.error(`[AgentAssistant Service] VCP PORT: ${VCP_SERVER_PORT}, VCP Key: ${VCP_SERVER_ACCESS_KEY ? 'FOUND' : 'NOT FOUND'}`);  
+        console.error(`[AgentAssistant Service] History rounds: ${MAX_HISTORY_ROUNDS}, Context TTL: ${CONTEXT_TTL_HOURS}h.`);  
+        console.error(`[AgentAssistant Service] Knowledge Enhancement: ${KNOWLEDGE_ENHANCEMENT_ENABLED ? 'ENABLED' : 'DISABLED'}`);  
+        if (KNOWLEDGE_ENHANCEMENT_ENABLED) {  
+            console.error(`[AgentAssistant Service] Target Agent: ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}, Interval: ${KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES} minutes`);  
+        }  
+    }  
+  
+    loadAgentsFromLocalConfig();  
+  
+    if (dependencies && dependencies.vcpLogFunctions && typeof dependencies.vcpLogFunctions.pushVcpInfo === 'function') {  
+        pushVcpInfo = dependencies.vcpLogFunctions.pushVcpInfo;  
+        if (DEBUG_MODE) console.error('[AgentAssistant Service] pushVcpInfo dependency injected successfully.');  
+    } else {  
+        console.error('[AgentAssistant Service] Warning: pushVcpInfo dependency injection failed. Broadcasts will be ignored.');  
+    }  
+  
+    if (cleanupInterval) clearInterval(cleanupInterval);  
+    cleanupInterval = setInterval(periodicCleanup, 60 * 60 * 1000);  
+  
+    // 启动知识完善定时任务 - 使用 setTimeout 延迟启动  
+    if (KNOWLEDGE_ENHANCEMENT_ENABLED) {  
+        if (knowledgeEnhancementInterval) clearInterval(knowledgeEnhancementInterval);  
+          
+        const intervalMs = KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES * 60 * 1000;  
+          
+        // 延迟 10 秒后启动定时任务,确保 VCP 服务器已完全启动  
+        setTimeout(() => {  
+            if (DEBUG_MODE) console.error('[AgentAssistant Service] Starting delayed knowledge enhancement scheduler...');  
+              
+            knowledgeEnhancementInterval = setInterval(async () => {  
+                if (DEBUG_MODE) console.error('[AgentAssistant Service] Triggering scheduled knowledge enhancement...');  
+                  
+                try {  
+                    const result = await processToolCall({  
+                        agent_name: KNOWLEDGE_ENHANCEMENT_TARGET_AGENT,  
+                        prompt: KNOWLEDGE_ENHANCEMENT_PROMPT  
+                    });  
+                      
+                    if (DEBUG_MODE) {  
+                        if (result.status === 'success') {  
+                            console.error(`[AgentAssistant Service] Knowledge enhancement completed successfully for ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}`);  
+                        } else {  
+                            console.error(`[AgentAssistant Service] Knowledge enhancement failed: ${result.error}`);  
+                        }  
+                    }  
+                } catch (error) {  
+                    console.error(`[AgentAssistant Service] Error during scheduled knowledge enhancement: ${error.message}`);  
+                }  
+            }, intervalMs);  
+              
+            console.log(`[AgentAssistant Service] Knowledge enhancement task scheduled every ${KNOWLEDGE_ENHANCEMENT_INTERVAL_MINUTES} minutes for agent: ${KNOWLEDGE_ENHANCEMENT_TARGET_AGENT}`);  
+        }, 10000); // 延迟 10 秒 (10000 毫秒)  
+    }  
+      
+    console.log('[AgentAssistant Service] Initialized successfully.');  
+} 
 
 /**
  * Shuts down the service, clearing any intervals.
